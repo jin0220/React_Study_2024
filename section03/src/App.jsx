@@ -1,5 +1,5 @@
 import './App.css'
-import { useState, useRef, useReducer } from 'react'
+import { useState, useRef, useReducer, useCallback, createContext, useMemo } from 'react'
 import Header from './components/Header'
 import Editor from './components/Editor'
 import List from './components/List'
@@ -42,6 +42,9 @@ function reducer(state, action) {
   }
 }
 
+export const TodoStateContext = createContext();
+export const TodoDispatchContext = createContext();
+
 function App() {
   // const [todos, setTodos] = useState(mockData);
   const [todos, dispatch] = useReducer(reducer, mockData);
@@ -49,7 +52,7 @@ function App() {
 
 
 
-  const onCreate = (content) => {
+  const onCreate = useCallback((content) => {
     // const newTodo = {
     //   id: idRef.current++,
     //   isDone: false,
@@ -67,9 +70,9 @@ function App() {
         date: new Date().getTime(),
       }
     })
-  }
+  }, [])
 
-  const onUpdate = (targetId) => {
+  const onUpdate = useCallback((targetId) => {
     // setTodos(todos.map((todo) => 
     //   todo.id === targetId
     //     ? {...todo, isDone: !todo.isDone} 
@@ -79,21 +82,38 @@ function App() {
       type: "UPDATE",
       targetId: targetId,
     })
-  }
+  }, [])
 
-  const onDelete = (targetId) => {
-    // setTodos(todos.filter((todo) => todo.id !== targetId ));
+  // const onDelete = (targetId) => {
+  //   // setTodos(todos.filter((todo) => todo.id !== targetId ));
+  //   dispatch({
+  //     type: "DELETE",
+  //     targetId: targetId,
+  //   })
+  // }
+
+  const onDelete = useCallback((targetId) => {
     dispatch({
       type: "DELETE",
       targetId: targetId,
-    })
-  }
+    });
+  }, [])
+
+  const memoizedDispatch = useMemo(() => {
+    return {onCreate, onUpdate, onDelete};
+  }, []);
 
   return (
     <div className='App'>
       <Header/>
-      <Editor onCreate={onCreate}/>
-      <List todos={todos} onUpdate={onUpdate} onDelete={onDelete}/>
+      <TodoStateContext.Provider value={todos}>
+        <TodoDispatchContext.Provider 
+          value={memoizedDispatch}
+        >
+          <Editor/>
+          <List />
+        </TodoDispatchContext.Provider>
+      </TodoStateContext.Provider>
     </div>
   )
 }
